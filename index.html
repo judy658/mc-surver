@@ -266,27 +266,6 @@
       </div>
     </div>
 
-    <!-- SIGNUP VIEW -->
-    <div id="view-signup" class="hidden">
-      <h1>HESAP OLUŞTUR</h1>
-      <p class="sub">Bu, ana sitedeki hesabını oluşturur</p>
-
-      <div class="field">
-        <label for="signup-email">E-posta</label>
-        <input type="email" id="signup-email" placeholder="ornek@mail.com" autocomplete="email">
-      </div>
-      <div class="field">
-        <label for="signup-password">Şifre</label>
-        <input type="password" id="signup-password" placeholder="en az 6 karakter" autocomplete="new-password">
-      </div>
-
-      <button class="btn" id="btn-signup">Kayıt Ol</button>
-
-      <div class="toggle-row">
-        Zaten hesabın var mı? <button id="go-login">Giriş yap</button>
-      </div>
-    </div>
-
     <!-- ACCOUNT / MC SETUP VIEW -->
     <div id="view-account" class="hidden">
       <h1 id="account-title">HOŞ GELDİN</h1>
@@ -336,7 +315,6 @@
 
   // ---- DOM referansları ----
   const viewLogin   = document.getElementById('view-login');
-  const viewSignup  = document.getElementById('view-signup');
   const viewAccount = document.getElementById('view-account');
   const msgBox      = document.getElementById('msg');
 
@@ -350,14 +328,15 @@
     msgBox.textContent = '';
   }
   function showView(view){
-    [viewLogin, viewSignup, viewAccount].forEach(v => v.classList.add('hidden'));
+    [viewLogin, viewAccount].forEach(v => v.classList.add('hidden'));
     view.classList.remove('hidden');
     clearMsg();
   }
 
-  // ---- Görünüm geçişleri ----
-  document.getElementById('go-signup').addEventListener('click', () => showView(viewSignup));
-  document.getElementById('go-login').addEventListener('click', () => showView(viewLogin));
+  // ---- "Kayıt ol" -> ana siteye yönlendir (kayıt burada değil, orada yapılır) ----
+  document.getElementById('go-signup').addEventListener('click', () => {
+    window.location.href = 'https://judy658.github.io/judy658-devstore/';
+  });
 
   // ---- Giriş ----
   document.getElementById('btn-login').addEventListener('click', async () => {
@@ -376,33 +355,6 @@
       showMsg('Giriş başarısız: ' + error.message, true);
       return;
     }
-    await loadAccountView();
-  });
-
-  // ---- Kayıt ----
-  document.getElementById('btn-signup').addEventListener('click', async () => {
-    const email = document.getElementById('signup-email').value.trim();
-    const password = document.getElementById('signup-password').value;
-    if(!email || !password){ showMsg('E-posta ve şifre gerekli.', true); return; }
-    if(password.length < 6){ showMsg('Şifre en az 6 karakter olmalı.', true); return; }
-
-    const btn = document.getElementById('btn-signup');
-    btn.disabled = true; btn.textContent = 'Kayıt olunuyor...';
-
-    const { data, error } = await sb.auth.signUp({ email, password });
-
-    btn.disabled = false; btn.textContent = 'Kayıt Ol';
-
-    if(error){
-      showMsg('Kayıt başarısız: ' + error.message, true);
-      return;
-    }
-
-    if(!data.session){
-      showMsg('Kayıt başarılı. Devam etmek için e-postanı onaylaman gerekebilir.');
-      return;
-    }
-
     await loadAccountView();
   });
 
