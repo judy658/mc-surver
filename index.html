@@ -213,6 +213,21 @@
 
   .hidden{ display:none !important; }
 
+  .link-btn{
+    display:block;
+    width:100%;
+    text-align:center;
+    background:none;
+    border:none;
+    color:var(--grass);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    text-decoration:underline;
+    cursor:pointer;
+    padding:4px 0;
+    margin-top:4px;
+  }
+
   footer{
     text-align:center;
     margin-top:18px;
@@ -291,6 +306,16 @@
         <div class="status-row">
           <div class="dot" id="status-dot"></div>
           <div class="status-text" id="status-text">-</div>
+        </div>
+        <button class="link-btn" id="btn-mc-edit">Kullanıcı adını değiştir</button>
+
+        <div id="mc-edit-form" class="hidden" style="margin-top:14px;">
+          <div class="field">
+            <label for="mc-username-edit">Yeni Minecraft kullanıcı adı</label>
+            <input type="text" id="mc-username-edit" placeholder="Steve123" autocomplete="off">
+          </div>
+          <button class="btn" id="btn-mc-update">Kaydet</button>
+          <button class="btn secondary" id="btn-mc-cancel-edit" style="margin-top:8px;">Vazgeç</button>
         </div>
       </div>
 
@@ -416,6 +441,62 @@
     await loadAccountView();
   });
 
+  // ---- Kullanıcı adı değiştir: formu aç/kapa ----
+  let currentMcUsername = '';
+
+  document.getElementById('btn-mc-edit').addEventListener('click', () => {
+    document.getElementById('mc-username-edit').value = currentMcUsername;
+    document.getElementById('mc-edit-form').classList.remove('hidden');
+    document.getElementById('btn-mc-edit').classList.add('hidden');
+    clearMsg();
+  });
+
+  document.getElementById('btn-mc-cancel-edit').addEventListener('click', () => {
+    document.getElementById('mc-edit-form').classList.add('hidden');
+    document.getElementById('btn-mc-edit').classList.remove('hidden');
+    clearMsg();
+  });
+
+  document.getElementById('btn-mc-update').addEventListener('click', async () => {
+    const username = document.getElementById('mc-username-edit').value.trim();
+    if(!username || username.length < 3){
+      showMsg('Geçerli bir kullanıcı adı gir (en az 3 karakter).', true);
+      return;
+    }
+    if(username === currentMcUsername){
+      showMsg('Bu zaten mevcut kullanıcı adın.', true);
+      return;
+    }
+
+    const { data: { user } } = await sb.auth.getUser();
+    if(!user){ showMsg('Oturum bulunamadı, tekrar giriş yap.', true); showView(viewLogin); return; }
+
+    const btn = document.getElementById('btn-mc-update');
+    btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+
+    // Kullanıcı adı değişince dogrulama durumu sıfırlanır; oyuncu
+    // Minecraft'ta yeni adıyla /login yaptığında otomatik tekrar dogrulanir.
+    const { error } = await sb
+      .from('mc_accounts')
+      .update({ minecraft_username: username, is_verified: false })
+      .eq('id', user.id);
+
+    btn.disabled = false; btn.textContent = 'Kaydet';
+
+    if(error){
+      if(error.code === '23505' || /duplicate|unique/i.test(error.message)){
+        showMsg('Bu kullanıcı adı başka bir hesap tarafından kullanılıyor.', true);
+      } else {
+        showMsg('Güncelleme başarısız: ' + error.message, true);
+      }
+      return;
+    }
+
+    document.getElementById('mc-edit-form').classList.add('hidden');
+    document.getElementById('btn-mc-edit').classList.remove('hidden');
+    await loadAccountView();
+  });
+
   // ---- Hesap görünümünü yükle (login sonrası) ----
   async function loadAccountView(){
     const { data: { user } } = await sb.auth.getUser();
@@ -442,9 +523,14 @@
 
     if(!row){
       // Henüz Minecraft kullanıcı adı belirlenmemiş
+      currentMcUsername = '';
       setupBox.classList.remove('hidden');
     } else {
       // Hesap zaten bağlı
+      currentMcUsername = row.minecraft_username;
+      document.getElementById('mc-edit-form').classList.add('hidden');
+      document.getElementById('btn-mc-edit').classList.remove('hidden');
+
       statusBox.classList.remove('hidden');
       const dot = document.getElementById('status-dot');
       const text = document.getElementById('status-text');
