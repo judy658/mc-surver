@@ -333,6 +333,11 @@
     clearMsg();
   }
 
+  // Minecraft kullanıcı adı kuralı: 3-16 karakter, sadece harf/rakam/alt çizgi
+  function isValidMcName(name){
+    return /^[A-Za-z0-9_]{3,16}$/.test(name);
+  }
+
   // ---- "Kayıt ol" -> ana siteye yönlendir (kayıt burada değil, orada yapılır) ----
   document.getElementById('go-signup').addEventListener('click', () => {
     window.location.href = 'https://judy658.github.io/judy658-devstore/';
@@ -367,8 +372,8 @@
   // ---- MC kullanıcı adı kaydet ----
   document.getElementById('btn-mc-save').addEventListener('click', async () => {
     const username = document.getElementById('mc-username').value.trim();
-    if(!username || username.length < 3){
-      showMsg('Geçerli bir kullanıcı adı gir (en az 3 karakter).', true);
+    if(!isValidMcName(username)){
+      showMsg('Geçerli bir Minecraft adı gir (3-16 karakter, sadece harf, rakam ve _).', true);
       return;
     }
 
@@ -386,7 +391,11 @@
     btn.disabled = false; btn.textContent = 'Kaydet';
 
     if(error){
-      showMsg('Kayıt başarısız: ' + error.message, true);
+      if(error.code === '23505' || /duplicate|unique/i.test(error.message)){
+        showMsg('Bu Minecraft adı başka bir hesaba bağlı. Başka bir ad dene.', true);
+      } else {
+        showMsg('Kayıt başarısız: ' + error.message, true);
+      }
       return;
     }
 
@@ -411,8 +420,8 @@
 
   document.getElementById('btn-mc-update').addEventListener('click', async () => {
     const username = document.getElementById('mc-username-edit').value.trim();
-    if(!username || username.length < 3){
-      showMsg('Geçerli bir kullanıcı adı gir (en az 3 karakter).', true);
+    if(!isValidMcName(username)){
+      showMsg('Geçerli bir Minecraft adı gir (3-16 karakter, sadece harf, rakam ve _).', true);
       return;
     }
     if(username === currentMcUsername){
@@ -489,8 +498,8 @@
       dot.classList.toggle('ok', !!row.is_verified);
       text.innerHTML = `<b>${row.minecraft_username}</b><br>` +
         (row.is_verified
-          ? 'Sunucuya bağlandı, oyun içinde giriş yapabilirsin.'
-          : 'Kayıt alındı, sunucuya senkronize ediliyor...');
+          ? 'Sunucuya bağlandı. Oyunda <b>/login &lt;ana site şifren&gt;</b> yazarak giriş yap.'
+          : 'Kayıt alındı. Oyunda <b>/login &lt;ana site şifren&gt;</b> yazarak giriş yapabilirsin.');
     }
   }
 
